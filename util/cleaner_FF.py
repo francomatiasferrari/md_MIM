@@ -9,7 +9,7 @@ class Cleaner:
         self.dataset_values = pd.read_csv('../datos/train_sample_outliers.csv')
 
     def calculate_corr_values_corr(self, col_null, col_corr, n):
-        nearest_n = df[col_corr].iloc[(df[col_corr]-n).abs().argsort()[:1]].values[0]
+        nearest_n = self.dataset_values[col_corr].iloc[(self.dataset_values[col_corr]-n).abs().argsort()[:1]].values[0]
         a = self.dataset_values[self.dataset_values[col_corr] == nearest_n][col_null].mean() # Mean of a similar high correlated value
         try:
             a = int(a) # Transform it to an integer
@@ -20,10 +20,7 @@ class Cleaner:
 
     def fill_nan_values_corr(self, df, col_null, col_corr):
         # Lambda functions thats apply only if the condition es fulfilled
-        df['outlier'] = df[df[col_null].isnull()].apply(
-                            lambda x: self.calculate_corr_values_corr(col_null, col_corr, x[col_corr]) 
-                            #if np.isnan(x[col_null]) else x[col_null]
-                            , axis=1)
+        df['outlier'] = df[df[col_null].isnull()].apply(lambda x: self.calculate_corr_values_corr(col_null, col_corr, x[col_corr]), axis=1)
         
         df[col_null].fillna(df['outlier'], inplace=True)
         df.drop(['outlier'], axis=1, inplace=True)
