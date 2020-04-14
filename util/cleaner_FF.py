@@ -41,6 +41,16 @@ class Cleaner:
         df.drop([col_null+'_Nulls'], axis=1, inplace=True)
         return df
     
+    def cat_x_otros(self,df,column,threshold):
+    
+	    c = self.dataset_values.groupby(column).user_id.count().sort_values(ascending=False)
+	    c_prop = c / c.sum() #Identifico la concentracion por cagegoria
+	    cat_princ = c_prop[c_prop > threshold].index.tolist() #Me quedo con las categorias principales
+
+	    df.loc[~df[column].isin(cat_princ),column]  = "otros" #Reemplazo las categorias no principales por etiqueta "otros"
+	        
+	    return df
+
     def tratar_nulos_categoricos(self,df):
         # Crea etiquetas nuevas para las variables categoricas a las que vale la pena hacerlo
         values = {'categorical_7': 'sin_cat7', 'country': 'sin_country', 'site': 'sin_public'}
@@ -50,8 +60,6 @@ class Cleaner:
         df.loc[(df.platform == "iOS") & (df.device_model.isnull()),"device_model"] = 'iPhone7,2' # Modelo mas recurrente para iOS
         df.loc[(df.platform == "Android") & (df.device_model.isnull()),"device_model"] = 'SM-T560' # Modelo mas recurrente para Android
 
-        #Eliminar columnas no necesarias
-        df.drop(['user_id'], axis=1, inplace = True)
         return df
     
     def tratar_nulos_numericos(self,df):
@@ -71,8 +79,26 @@ class Cleaner:
         df.drop(['traffic_type'], axis=1, inplace = True) # Se elimina porque tiene todos los valores iguales (2)
         
         return df
-    
+
+    def tratar_outliers_categoricos(self,df):
+        # Cambia las categorias unicas o poco frecuentes por una unica categoria en base a un threshold de concentracion seteado por jucio experto
+        df = self.cat_x_otros(df,"categorical_1",0.02)# 4 Categorias en total
+        df = self.cat_x_otros(df,"categorical_2",0.01)# 4 Categorias en total
+        df = self.cat_x_otros(df,"categorical_3",0.01)# 3 Categorias en total
+        df = self.cat_x_otros(df,"categorical_4",0.01)# 2 Categorias en total
+        df = self.cat_x_otros(df,"categorical_5",0.005)# 6 Categorias en total
+        df = self.cat_x_otros(df,"categorical_6",0.01)# 5 Categorias en total
+        df = self.cat_x_otros(df,"categorical_7",0.05)# 10 Categorias en total
+        df = self.cat_x_otros(df,"country",0.0035)# 51 Categorias en total
+        df = self.cat_x_otros(df,"site",0.1)# 2 Categorias en total (tuvo o no tuvo public)
+        #device_model	QUE HACEMOS ACA? ARMAMOS CATEGORIAS DE OTRA MANERA? PRIMERO SEPARANDO POR OS?
+        
+        #Eliminar columnas no necesarias
+        df.drop(['user_id'], axis=1, inplace = True) # Por la cantidad de valores nulos tomados como outliers se elimina la columna
+        return df
+
     def clean_all(self,df):
         df = self.tratar_nulos_numericos(df)
         df = self.tratar_nulos_categoricos(df)
+        df = self.tratar_outliers_categoricos(df)
         return df
