@@ -6,7 +6,7 @@ import numpy as np
 class Cleaner:
     def __init__(self):
         #Load the dataset with the inputs correlated values
-        self.dataset_values = pd.read_csv('../datos/train_sample.csv')
+        self.dataset_values = pd.read_csv('../datos/train_sample_train.csv')
 
     def calculate_corr_values_corr(self, col_null, col_corr, n):
         nearest_n = self.dataset_values[col_corr].iloc[(self.dataset_values[col_corr]-n).abs().argsort()[:1]].values[0]
@@ -46,9 +46,9 @@ class Cleaner:
         values = {'categorical_7': 'sin_cat7', 'country': 'sin_country', 'site': 'sin_public'}
         df = df.fillna(value=values)
 
-        # Elimina nulls considerados outliers
-        df.dropna(subset=['device_model'], inplace=True)
-        df.reset_index(drop=True, inplace=True)
+        # Trata los valores nulos del campo device_model en relacion al campo platform
+        df.loc[(df.platform == "iOS") & (df.device_model.isnull()),"device_model"] = 'iPhone7,2' # Modelo mas recurrente para iOS
+        df.loc[(df.platform == "Android") & (df.device_model.isnull()),"device_model"] = 'SM-T560' # Modelo mas recurrente para Android
 
         #Eliminar columnas no necesarias
         df.drop(['user_id'], axis=1, inplace = True)
@@ -62,11 +62,14 @@ class Cleaner:
         df['ChangeArena_sum_dsi3'].fillna(0, inplace = True)
         df['ChangeArena_sum_dsi3'] = df['ChangeArena_sum_dsi3'].astype('int64')
         df['Label'] = df['Label'].astype('int64')
-        df.drop(['age'], axis=1, inplace = True)
+        
 
         #Eliminar columnas no necesarias
-        df.drop(['id'], axis=1, inplace = True)
-        df.drop(['Label_max_played_dsi'], axis=1, inplace = True)
+        df.drop(['age'], axis=1, inplace = True) # Por la cantidad de nulos que tiene y porque no aporta info a Label
+        df.drop(['id'], axis=1, inplace = True) # Se elimina porque no aporta ninguna informacion por la naturaleza de la variable
+        df.drop(['Label_max_played_dsi'], axis=1, inplace = True) # Se elimina porque es el target expresado de otra manera
+        df.drop(['traffic_type'], axis=1, inplace = True) # Se elimina porque tiene todos los valores iguales (2)
+        
         return df
     
     def clean_all(self,df):
