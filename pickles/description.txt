@@ -1,0 +1,1 @@
+En esta carpeta se pueden ir subiendo los pickles de los modelos resultantes que se crean necesarios y relevantes.
