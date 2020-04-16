@@ -53,7 +53,7 @@ class Cleaner:
 
     def tratar_nulos_categoricos(self,df):
         # Crea etiquetas nuevas para las variables categoricas a las que vale la pena hacerlo
-        values = {'categorical_7': 'sin_cat7', 'country': 'sin_country', 'site': 'sin_public'}
+        values = {'categorical_7': 'sin_cat7', 'site': 'sin_public'}
         df = df.fillna(value=values)
 
         # Trata los valores nulos del campo device_model en relacion al campo platform
@@ -69,14 +69,38 @@ class Cleaner:
         df = self.fill_nan_values_corr_2(df, df.OpenChest_sum_dsi2.name, df.EnterDeck_sum_dsi2.name) # Tarda 0.02 segs por row
         df['ChangeArena_sum_dsi3'].fillna(0, inplace = True)
         df['ChangeArena_sum_dsi3'] = df['ChangeArena_sum_dsi3'].astype('int64')
-        df['Label'] = df['Label'].astype('int64')
+        #df['Label'] = df['Label'].astype('int64')
         
 
         #Eliminar columnas no necesarias
         df.drop(['age'], axis=1, inplace = True) # Por la cantidad de nulos que tiene y porque no aporta info a Label
         df.drop(['id'], axis=1, inplace = True) # Se elimina porque no aporta ninguna informacion por la naturaleza de la variable
-        df.drop(['Label_max_played_dsi'], axis=1, inplace = True) # Se elimina porque es el target expresado de otra manera
+        #df.drop(['Label_max_played_dsi'], axis=1, inplace = True) # Se elimina porque es el target expresado de otra manera
         df.drop(['traffic_type'], axis=1, inplace = True) # Se elimina porque tiene todos los valores iguales (2)
+        
+        return df
+
+    def cat_a_bucket(self,df,columna):
+
+        c = self.dataset_values.groupby(columna).user_id.count().sort_values(ascending=False)
+        c_prop = c / c.sum()
+        c_prop = c_prop.cumsum()
+        c_prop = c_prop.rename("cumsum")
+
+        df = pd.merge(df, c_prop, left_on=columna, right_index=True, how='left')
+
+        new_name = columna + "_agg"
+
+        df.loc[(df['cumsum'] < 0.2), new_name] = 1
+        df.loc[((df['cumsum'] >= 0.2) & (df['cumsum'] < 0.4)), new_name] = 2
+        df.loc[((df['cumsum'] >= 0.4) & (df['cumsum'] < 0.6)), new_name] = 3
+        df.loc[((df['cumsum'] >= 0.6) & (df['cumsum'] < 0.8)), new_name] = 4
+        df.loc[((df['cumsum'] >= 0.8)), new_name] = 5
+        df[new_name].fillna(6, inplace=True)
+        
+        df[new_name] = df[new_name].astype('int64')
+        df.drop(['cumsum'], axis=1, inplace = True)
+        df.drop([columna], axis=1, inplace = True)
         
         return df
 
@@ -89,16 +113,30 @@ class Cleaner:
         df = self.cat_x_otros(df,"categorical_5",0.005)# 6 Categorias en total
         df = self.cat_x_otros(df,"categorical_6",0.01)# 5 Categorias en total
         df = self.cat_x_otros(df,"categorical_7",0.05)# 10 Categorias en total
-        df = self.cat_x_otros(df,"country",0.0035)# 51 Categorias en total
-        df = self.cat_x_otros(df,"site",0.1)# 2 Categorias en total (tuvo o no tuvo public)
-        #device_model	QUE HACEMOS ACA? ARMAMOS CATEGORIAS DE OTRA MANERA? PRIMERO SEPARANDO POR OS?
+        df = self.cat_x_otros(df,"site",0.01)# 2 Categorias en total (tuvo o no tuvo public)
+
+        # buckets de categoricas
+        df = self.cat_a_bucket(df,"country")
+        df = self.cat_a_bucket(df,"device_model")
         
         #Eliminar columnas no necesarias
         df.drop(['user_id'], axis=1, inplace = True) # Por la cantidad de valores nulos tomados como outliers se elimina la columna
         return df
 
+    def tratar_negativos(self,df,column_neg, column_pos):
+        df.loc[df[column_neg] < 0, column_neg] = df.loc[df[column_neg] < 0, column_pos] 
+        return df
+
+    def tratar_outliers_numericos(self,df):
+    	df = self.tratar_negativos(df,"BuyCard_sum_dsi1", "BuyCard_sum_dsi0")
+    	df = self.tratar_negativos(df,"OpenChest_sum_dsi3", "OpenChest_sum_dsi2")
+    	return df
+
     def clean_all(self,df):
         df = self.tratar_nulos_numericos(df)
         df = self.tratar_nulos_categoricos(df)
         df = self.tratar_outliers_categoricos(df)
+        df = self.tratar_outliers_numericos(df)
+
+        df = df.reindex(sorted(df.columns), axis=1)
         return df

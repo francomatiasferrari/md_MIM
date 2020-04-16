@@ -65,6 +65,7 @@ def cargar_datos(sample=1):
             dataset.to_csv(r'../datos/train_entero.csv', index = False)
 
     # Pregunta por test y train
+    """
     if (os.path.isfile('../datos/train_sample_train.csv')) & (os.path.isfile('../datos/train_sample_test.csv')):
         dataset_train = pd.read_csv('../datos/train_sample_train.csv')   
         dataset_test = pd.read_csv('../datos/train_sample_test.csv')   
@@ -72,7 +73,10 @@ def cargar_datos(sample=1):
         dataset_train, dataset_test = train_test_split(dataset, test_size=0.3, random_state=42)
         dataset_train.to_csv(r'../datos/train_sample_train.csv', index = False)
         dataset_test.to_csv(r'../datos/train_sample_test.csv', index = False)
+    """
 
+    dataset['Label'] = dataset['Label'].astype('int64')
+    dataset.drop(['Label_max_played_dsi'], axis=1, inplace = True)
     return dataset
 
 
