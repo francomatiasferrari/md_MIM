@@ -6,7 +6,7 @@ import numpy as np
 class Cleaner:
     def __init__(self):
         #Load the dataset with the inputs correlated values
-        self.dataset_values = pd.read_csv('../datos/train_sample_train.csv')
+        self.dataset_values = pd.read_csv('../datos/train_entero.csv')
 
     def calculate_corr_values_corr(self, col_null, col_corr, n):
         nearest_n = self.dataset_values[col_corr].iloc[(self.dataset_values[col_corr]-n).abs().argsort()[:1]].values[0]
@@ -100,7 +100,7 @@ class Cleaner:
         
         df[new_name] = df[new_name].astype('int64')
         df.drop(['cumsum'], axis=1, inplace = True)
-        df.drop([columna], axis=1, inplace = True)
+        #df.drop([columna], axis=1, inplace = True)
         
         return df
 
@@ -119,8 +119,6 @@ class Cleaner:
         df = self.cat_a_bucket(df,"country")
         df = self.cat_a_bucket(df,"device_model")
         
-        #Eliminar columnas no necesarias
-        df.drop(['user_id'], axis=1, inplace = True) # Por la cantidad de valores nulos tomados como outliers se elimina la columna
         return df
 
     def tratar_negativos(self,df,column_neg, column_pos):
