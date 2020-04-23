@@ -68,8 +68,8 @@ class Modeler:
         roc_auc_test = metrics.auc(fpr_test, tpr_test)
 
         plt.title('Model Performance')
-        plt.plot(fpr, tpr, 'b', label = 'AUC train = %0.2f' % roc_auc)
-        plt.plot(fpr_test, tpr_test, 'g', label = 'AUC test = %0.2f' % roc_auc_test)
+        plt.plot(fpr, tpr, 'b', label = 'AUC train = %0.5f' % roc_auc)
+        plt.plot(fpr_test, tpr_test, 'g', label = 'AUC test = %0.5f' % roc_auc_test)
 
         plt.legend(loc = 'lower right')
         plt.plot([0, 1], [0, 1],'r--')
