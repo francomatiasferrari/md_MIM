@@ -1,12 +1,24 @@
 #Cleaner
 import pandas as pd
 import numpy as np
+from sklearn import preprocessing
+import pickle
 
 class Transformer:
     def __init__(self):
         #Load the dataset with the inputs correlated values
         self.dataset_values = pd.read_csv('../datos/train_entero.csv')
-    
+
+        # Levanta los pickles de k means
+        with open('../pickles/kmeans_dsi3.pkl', 'rb') as handle:
+            self.kmeans_dsi3 = pickle.load(handle)
+        with open('../pickles/kmeans_dsi2.pkl', 'rb') as handle:
+            self.kmeans_dsi2 = pickle.load(handle)
+        with open('../pickles/kmeans_dsi1.pkl', 'rb') as handle:
+            self.kmeans_dsi1 = pickle.load(handle)
+        with open('../pickles/kmeans_dsi0.pkl', 'rb') as handle:
+            self.kmeans_dsi0 = pickle.load(handle)
+
     def check_dummies(self,df,df_train):
         # Busco las columnas diferentes entre datasets
         l1 = list(set(df_train.columns) - set(df.columns))
@@ -175,6 +187,20 @@ class Transformer:
         df.loc[df['cat_country'].isna(),'cat_country'] = 'bucket5'
         return df
 
+    def k_means_dsi_clusters(self, df, kmeans, dsi):
+    
+        names_dsiX = [col for col in df.columns if (dsi in col) and not('dum' in col)] 
+
+        # normalizar datos
+        normalized_df = preprocessing.normalize(df[names_dsiX])
+        X = np.array(normalized_df)
+
+        nomCol = 'cluster'+dsi
+        df[nomCol] = kmeans.predict(X)
+        df[nomCol] = df[nomCol].astype('object')
+
+        return df
+
     def transform_all(self, df, df_train = None):
         # Crea, transforma y selecciona features
         df = self.crea_dia_semana(df)
@@ -183,6 +209,10 @@ class Transformer:
         df = self.device_to_brand(df)
         df = self.device_by_churn(df)
         df = self.country_new_bucket(df)
+        df = self.k_means_dsi_clusters(df,self.kmeans_dsi3,"_dsi3")
+        df = self.k_means_dsi_clusters(df,self.kmeans_dsi2,"_dsi2")
+        df = self.k_means_dsi_clusters(df,self.kmeans_dsi1,"_dsi1")
+        df = self.k_means_dsi_clusters(df,self.kmeans_dsi0,"_dsi0")
 
         # Elimina columnas reciduales
         df.drop(['install_date'], axis=1, inplace = True) 
