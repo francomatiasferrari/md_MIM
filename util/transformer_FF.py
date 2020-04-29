@@ -50,6 +50,23 @@ class Transformer:
 
         return df
 
+    def crea_dia_mes(self,df):
+        # Arma una tabla base con muchas semanas para 2000 dias
+        d = {'dia': [], 'dia_mes': []}
+        df_m_table = pd.DataFrame(data=d)
+
+        dia_mes = 0
+        for i in range(0,2000):
+            if dia_mes==30:
+                dia_mes=0
+            dia_mes += 1
+            df_m_table = df_m_table.append({'dia': i, 'dia_mes': dia_mes}, ignore_index=True)
+
+        # Joinea con install_date para determinar que dia se intalo el juego
+        df = df.merge(df_m_table, right_on="dia", left_on="install_date", how='left')  
+        df.drop(['dia'], axis=1, inplace = True) 
+        return df
+
     def crea_dia_semana(self,df):
         # Arma una tabla base con muchas semanas para 2000 dias
         d = {'dia': [], 'dia_semana': []}
@@ -201,10 +218,38 @@ class Transformer:
 
         return df
 
+    def currency_features(self,df):
+        df["hard"] = (df.hard_positive - df.hard_negative)
+        df["soft"] = (df.soft_positive - df.soft_negative)
+        df["hard_soft"] = (df.hard_positive + df.soft_positive - df.hard_negative - df.soft_negative)
+
+        df["hard"] = df["hard_soft"].astype('float64')
+        df["soft"] = df["hard_soft"].astype('float64')
+        df["hard_soft"] = df["hard_soft"].astype('float64')
+        return df
+
+    def interaccion_entre_dsi(self,df): # Esto se codeo de forma "villera" por falta de tiempo
+        df["sum_dsi"] = (df.StartSession_sum_dsi3 + df.StartSession_sum_dsi2 + df.StartSession_sum_dsi1 + df.StartSession_sum_dsi0+
+                 df.StartBattle_sum_dsi3 + df.StartBattle_sum_dsi2 + df.StartBattle_sum_dsi1 + df.StartBattle_sum_dsi0+
+                 df.WinBattle_sum_dsi3 + df.WinBattle_sum_dsi2 + df.WinBattle_sum_dsi1 + df.WinBattle_sum_dsi0+
+                 df.EnterDeck_sum_dsi3 + df.EnterDeck_sum_dsi2 + df.EnterDeck_sum_dsi1 + df.EnterDeck_sum_dsi0+
+                 df.OpenChest_sum_dsi3 + df.OpenChest_sum_dsi2 + df.OpenChest_sum_dsi1 + df.OpenChest_sum_dsi0)
+
+        df["div_dsi"] = ( (df.StartSession_sum_dsi3 + df.StartBattle_sum_dsi3 + df.WinBattle_sum_dsi3 + df.EnterDeck_sum_dsi3 +
+                  df.OpenChest_sum_dsi3) / 
+                  (df.StartSession_sum_dsi3 + df.StartSession_sum_dsi2 + 
+                  df.StartBattle_sum_dsi3 + df.StartBattle_sum_dsi2 +
+                  df.WinBattle_sum_dsi3 + df.WinBattle_sum_dsi2 + 
+                  df.EnterDeck_sum_dsi3 + df.EnterDeck_sum_dsi2 +
+                  df.OpenChest_sum_dsi3 + df.OpenChest_sum_dsi2)   )
+
+        return df
+
     def transform_all(self, df, df_train = None):
         # Crea, transforma y selecciona features
         df = self.crea_dia_semana(df)
         #df = self.crea_mes(df)        # Descubrimos que el mes resta en las metricas de roc porque los modelos le dan mucha importancia por lo que la eliminamos.
+        #df = self.crea_dia_mes(df)    # Lo mismo pasa con el dia del mes.
         df = self.dummies_for_dsi(df)
         df = self.device_to_brand(df)
         df = self.device_by_churn(df)
@@ -213,6 +258,8 @@ class Transformer:
         df = self.k_means_dsi_clusters(df,self.kmeans_dsi2,"_dsi2")
         df = self.k_means_dsi_clusters(df,self.kmeans_dsi1,"_dsi1")
         df = self.k_means_dsi_clusters(df,self.kmeans_dsi0,"_dsi0")
+        df = self.currency_features(df)
+        df = self.interaccion_entre_dsi(df)
 
         # Elimina columnas reciduales
         df.drop(['install_date'], axis=1, inplace = True) 
