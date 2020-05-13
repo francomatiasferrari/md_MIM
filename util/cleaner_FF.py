@@ -9,6 +9,7 @@ class Cleaner:
         self.dataset_values = pd.read_csv('../datos/train_entero.csv')
 
     def calculate_corr_values_corr(self, col_null, col_corr, n):
+        #Calcula la media de la columna null tomando los registros donde la columna correlacionada tiene valores similares
         nearest_n = self.dataset_values[col_corr].iloc[(self.dataset_values[col_corr]-n).abs().argsort()[:1]].values[0]
         a = self.dataset_values[self.dataset_values[col_corr] == nearest_n][col_null].mean() # Mean of a similar high correlated value
         try:
@@ -19,7 +20,7 @@ class Cleaner:
         return a
 
     def fill_nan_values_corr_2(self, df, col_null, col_corr):
-        # Lambda functions thats apply only if the condition es fulfilled
+        # Mira los valores nan y los completa con la media mas similar de los valores de la columna que mayor correlacion tiene
         df['outlier'] = df[df[col_null].isnull()].apply(lambda x: self.calculate_corr_values_corr(col_null, col_corr, x[col_corr]), axis=1)
 
         df[col_null].fillna(df['outlier'], inplace=True)
@@ -42,12 +43,12 @@ class Cleaner:
         return df
     
     def cat_x_otros(self,df,column,threshold):
-    
+        #Reemplazo las categorias no principales por etiqueta "otros" en base a un threshold
 	    c = self.dataset_values.groupby(column).user_id.count().sort_values(ascending=False)
 	    c_prop = c / c.sum() #Identifico la concentracion por cagegoria
 	    cat_princ = c_prop[c_prop > threshold].index.tolist() #Me quedo con las categorias principales
 
-	    df.loc[~df[column].isin(cat_princ),column]  = "otros" #Reemplazo las categorias no principales por etiqueta "otros"
+	    df.loc[~df[column].isin(cat_princ),column]  = "otros" 
 	        
 	    return df
 
@@ -81,7 +82,7 @@ class Cleaner:
         return df
 
     def cat_a_bucket(self,df,columna):
-
+        # Arma buckets dependiendo la concentracion de repeticiones (frecuencia) de las etiquetas
         c = self.dataset_values.groupby(columna).user_id.count().sort_values(ascending=False)
         c_prop = c / c.sum()
         c_prop = c_prop.cumsum()
@@ -100,7 +101,6 @@ class Cleaner:
         
         df[new_name] = df[new_name].astype('int64')
         df.drop(['cumsum'], axis=1, inplace = True)
-        #df.drop([columna], axis=1, inplace = True)
         
         return df
 
@@ -121,7 +121,7 @@ class Cleaner:
         
         return df
 
-    def tratar_negativos(self,df,column_neg, column_pos):
+    def tratar_negativos(self,df,column_neg, column_pos): # Trata a los valores negativos, colocando el valor positivo mas similar del dia anterior
         df.loc[df[column_neg] < 0, column_neg] = df.loc[df[column_neg] < 0, column_pos] 
         return df
 
@@ -131,6 +131,7 @@ class Cleaner:
     	return df
 
     def clean_all(self,df):
+        # Main function.
         df = self.tratar_nulos_numericos(df)
         df = self.tratar_nulos_categoricos(df)
         df = self.tratar_outliers_categoricos(df)

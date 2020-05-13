@@ -51,7 +51,7 @@ class Transformer:
         return df
 
     def crea_dia_mes(self,df):
-        # Arma una tabla base con muchas semanas para 2000 dias
+        # Arma una tabla base con muchos meses con el dia del mes para 2000 dias
         d = {'dia': [], 'dia_mes': []}
         df_m_table = pd.DataFrame(data=d)
 
@@ -219,6 +219,7 @@ class Transformer:
         return df
 
     def currency_features(self,df):
+        # Variables que nacen de la interaccion y el comportamiento de pago o manejo de moneda del juego.
         df["hard"] = (df.hard_positive - df.hard_negative)
         df["soft"] = (df.soft_positive - df.soft_negative)
         df["hard_soft"] = (df.hard_positive + df.soft_positive - df.hard_negative - df.soft_negative)
@@ -226,9 +227,19 @@ class Transformer:
         df["hard"] = df["hard_soft"].astype('float64')
         df["soft"] = df["hard_soft"].astype('float64')
         df["hard_soft"] = df["hard_soft"].astype('float64')
+
+        df["hard_div"] = (df.hard_negative / df.hard_positive)
+        df.loc[df.hard_negative / df.hard_positive == float('inf'),"hard_div"]=1
+        df["hard_div"].fillna(0, inplace=True)
+
+        df["soft_div"] = (df.soft_negative / df.soft_positive)
+        df.loc[df.soft_negative / df.soft_positive == float('inf'),"soft_div"]=1
+        df["soft_div"].fillna(0, inplace=True)
         return df
 
-    def interaccion_entre_dsi(self,df): # Esto se codeo de forma "villera" por falta de tiempo
+    def interaccion_entre_dsi(self,df): 
+        # Esto se codeo de forma "no prolija" por falta de tiempo. Se intenta armar dos variables que expliquen la interaccion entre las dsiX
+        # En un principio se planteo hacerlo con PCA pero por cuestiones de tiempo no se llego
         df["sum_dsi"] = (df.StartSession_sum_dsi3 + df.StartSession_sum_dsi2 + df.StartSession_sum_dsi1 + df.StartSession_sum_dsi0+
                  df.StartBattle_sum_dsi3 + df.StartBattle_sum_dsi2 + df.StartBattle_sum_dsi1 + df.StartBattle_sum_dsi0+
                  df.WinBattle_sum_dsi3 + df.WinBattle_sum_dsi2 + df.WinBattle_sum_dsi1 + df.WinBattle_sum_dsi0+
@@ -248,8 +259,9 @@ class Transformer:
     def transform_all(self, df, df_train = None):
         # Crea, transforma y selecciona features
         df = self.crea_dia_semana(df)
-        #df = self.crea_mes(df)        # Descubrimos que el mes resta en las metricas de roc porque los modelos le dan mucha importancia por lo que la eliminamos.
-        #df = self.crea_dia_mes(df)    # Lo mismo pasa con el dia del mes.
+        df.loc[df.install_date>364, 'install_date'] = df.install_date - 365
+        df = self.crea_mes(df)        
+        df = self.crea_dia_mes(df)    
         df = self.dummies_for_dsi(df)
         df = self.device_to_brand(df)
         df = self.device_by_churn(df)
@@ -267,7 +279,7 @@ class Transformer:
         df.drop(['country'], axis=1, inplace = True)
         df.drop(['device_model'], axis=1, inplace = True)
 
-        # Esto siempre tiene que ser el ultimo
+        # Esto siempre tiene que ser el ultimo. Crea las dummies de todo lo que no sea numerico
         df = self.crear_dummies(df,df_train)
 
         # Ordena las columnas (muchos modelos lo exigen)

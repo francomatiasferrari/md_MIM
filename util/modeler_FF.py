@@ -42,6 +42,7 @@ class Modeler:
 # Funciones de metricas y resultados
 
     def plot_roc(self,model,X,y):
+        # Arma el grafico de la curva ROC de una sola linea
         probs = model.predict_proba(X)
 
         fpr, tpr, threshold = metrics.roc_curve(y,probs[:,1])
@@ -58,6 +59,8 @@ class Modeler:
         plt.show()
     
     def plot_roc_2(self,model,X_train,y_train,X_test,y_test):
+        # Arma el grafico de la curva ROC de dos lineas
+        # Sirve para comparar test y train en un solo grafico
         probs = model.predict_proba(X_train)
         probs_test = model.predict_proba(X_test)
 
@@ -80,10 +83,10 @@ class Modeler:
         plt.show()
 
     def plot_feature_importance(self,model,X):
-        # SKlearn models have a function that give as the feature importance.
+        # Funcion de sklearn que nos da la importancia de cada variable
         feature_imp = pd.DataFrame(sorted(zip(model.feature_importances_,X.columns)), columns=['Value','Feature'])
 
-        #Now we plot in a barplot the feature importance order by "value" in decending way.
+        #Ploteamos un grafico de barras que indica en orden la importancia de las variables.
         plt.figure(figsize=(15, 25))
         sns.barplot(x="Value", y="Feature", data=feature_imp.sort_values(by="Value", ascending=False))
         plt.title('Features importance')
@@ -97,15 +100,18 @@ class Modeler:
 
 # Funciones de guardado de resultados 
     def guardar_modelo(self,model,nombreModel):
+        # Guarda el modelo en un pickle
         with open('../pickles/'+final_model+'.pkl', 'wb') as handle:
             pickle.dump(model, handle, pickle.HIGHEST_PROTOCOL)
 
     def abrir_modelo(self,nombreModel):
+        # Abre el modelo de un pickle
         with open('../pickles/'+final_model+'.pkl', 'rb') as handle:
             model = pickle.load(handle)
         return model
 
     def guardar_submit(self,probs,nombreArchivo):
+        # Guarda los resultados de scorear validation en un archivo para el submit de la competencia.
         p = pd.DataFrame(probs[:,1:])
         p = p.rename(columns={0: "Label"})
         p.insert(0, 'id', p.index)
